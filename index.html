@@ -238,51 +238,61 @@ nav{position:sticky;top:0;z-index:200;background:rgba(232,234,246,0.96);backdrop
 </div>
 <script>
 const MENU=[
-  {id:1,n:'Cappuccino',s:'hazelnut / vanilla',p:120,c:'hot-coffee',t:['hot'],x:{flavour:['Classic','Hazelnut +10','Vanilla +10']}},
-  {id:2,n:'Latte',s:'vanilla / caramel / gur',p:130,c:'hot-coffee',t:['hot'],x:{flavour:['Classic','Vanilla +10','Caramel +10','Gur +10']}},
-  {id:3,n:'Mocha',s:'white / dark / cinnamon',p:140,c:'hot-coffee',t:['hot'],x:{variant:['White','Dark','Cinnamon']}},
-  {id:4,n:'Espresso',s:'doppio / lungo / triple / americano',p:100,c:'hot-coffee',t:['hot'],x:{variant:['Single','Doppio +10','Lungo +10','Triple +20','Americano']}},
-  {id:5,n:'Flat White',s:'',p:130,c:'hot-coffee',t:['hot']},
-  {id:6,n:'Iced Americano',s:'ask for lemon zest',p:120,c:'cold-coffee',t:['cold'],x:{extras:['No extras','Lemon zest']}},
-  {id:7,n:'Espresso Tonic',s:'',p:150,c:'cold-coffee',t:['cold']},
-  {id:8,n:'Orange Espresso Tonic',s:'',p:160,c:'cold-coffee',t:['cold']},
-  {id:9,n:'Redbull Espresso',s:'',p:200,c:'cold-coffee',t:['cold','more-sugar']},
-  {id:10,n:'Cold Coffee',s:'hazel / vanilla / caramel / popcorn / irish / cheesecake',p:150,c:'cold-coffee',t:['cold'],x:{flavour:['Classic','Hazelnut +10','Vanilla +10','Caramel +10','Popcorn +10','Irish +15','Cheesecake +15']}},
-  {id:11,n:'Sea Salt Caramel Latte',s:'',p:160,c:'cold-coffee',t:['cold']},
-  {id:12,n:'Iced Mocha',s:'add-on dark',p:160,c:'cold-coffee',t:['cold'],x:{extras:['Regular','Add dark +10']}},
-  {id:13,n:'Vietnamese Iced Coffee',s:'',p:150,c:'cold-coffee',t:['cold','more-sugar']},
-  {id:14,n:'Tangerine Mocktail',s:'',p:160,c:'cold-beverages',t:['cold']},
-  {id:15,n:'Passionfruit Mocktail',s:'',p:160,c:'cold-beverages',t:['cold']},
-  {id:16,n:'Cranberry Mocktail',s:'',p:160,c:'cold-beverages',t:['cold']},
-  {id:17,n:'Redbull Mocktail',s:'',p:190,c:'cold-beverages',t:['cold','more-sugar']},
-  {id:18,n:'Raspberry Iced Tea',s:'',p:130,c:'cold-beverages',t:['cold','less-sugar']},
-  {id:19,n:'Mango Mint Iced Tea',s:'',p:130,c:'cold-beverages',t:['cold','less-sugar']},
-  {id:20,n:'Peach Iced Tea',s:'',p:130,c:'cold-beverages',t:['cold','less-sugar']},
-  {id:21,n:'Lemon Iced Tea',s:'',p:120,c:'cold-beverages',t:['cold','less-sugar']},
-  {id:22,n:'OG Nimboo Paani',s:'',p:80,c:'cold-beverages',t:['cold','less-sugar']},
-  {id:23,n:'OG Roohafza',s:'',p:90,c:'cold-beverages',t:['cold','more-sugar']},
-  {id:24,n:'Diet Coke Raspberry Punch',s:'',p:120,c:'cold-beverages',t:['cold','less-sugar']},
-  {id:25,n:'Hot Chocolate',s:'vanilla / hazelnut / cinnamon',p:140,c:'milk',t:['hot','more-sugar'],x:{flavour:['Classic','Vanilla +10','Hazelnut +10','Cinnamon +10']}},
-  {id:26,n:'Haldi Doodh',s:'',p:100,c:'milk',t:['hot','less-sugar']},
-  {id:27,n:'Oreo Milkshake',s:'',p:160,c:'milk',t:['cold','more-sugar']},
-  {id:28,n:'Biscoff Milkshake',s:'',p:170,c:'milk',t:['cold','more-sugar']},
-  {id:29,n:'Bournvita',s:'hot or cold',p:110,c:'milk',t:[],x:{temp:['Hot','Cold']}},
-  {id:30,n:'Matcha Latte',s:'iced or hot · vanilla / hazelnut',p:180,c:'matcha',t:['less-sugar'],x:{temp:['Iced','Hot'],extras:['No add-on','Vanilla +10','Hazelnut +10']}},
-  {id:31,n:'Dirty Matcha',s:'espresso shot over matcha',p:200,c:'matcha',t:[]},
-  {id:32,n:'Minty Green Crunch Salad',s:'',p:220,c:'food',t:['food','less-sugar']},
-  {id:33,n:'Mediterranean Hummus Bowl',s:'',p:230,c:'food',t:['food','less-sugar']},
-  {id:34,n:'Peri Peri Paneer Bowl',s:'',p:240,c:'food',t:['food']},
-  {id:35,n:'Pesto Paneer Bowl',s:'',p:240,c:'food',t:['food']},
-  {id:36,n:'Nachos Platter',s:'',p:200,c:'food',t:['food']},
-  {id:37,n:'Hummus Platter',s:'',p:190,c:'food',t:['food','less-sugar']},
-  {id:38,n:'Choco Muffin',s:'',p:80,c:'desserts',t:['more-sugar']},
-  {id:39,n:'Strawberry Muffin',s:'',p:80,c:'desserts',t:['more-sugar']},
-  {id:40,n:'Choco Cookie',s:'',p:60,c:'desserts',t:['more-sugar']},
-  {id:41,n:'Biscoff Cookie',s:'',p:70,c:'desserts',t:['more-sugar']},
-  {id:42,n:'Choco Brownie',s:'',p:90,c:'desserts',t:['more-sugar']},
-  {id:43,n:'Sea Salt Caramel Brownie',s:'ask for ice cream',p:110,c:'desserts',t:['more-sugar'],x:{extras:['Without ice cream','With ice cream +30']}},
-  {id:44,n:'Lemon Cheesecake',s:'',p:130,c:'desserts',t:[]},
-  {id:45,n:'Chocolate Cheesecake',s:'',p:130,c:'desserts',t:['more-sugar']},
+  // HOT COFFEE
+  {id:1,n:"Sabrina's Espresso",s:'sugar free · strong',p:70,c:'hot-coffee',t:['hot','less-sugar']},
+  {id:2,n:'Hot Americano',s:'sugar free',p:90,c:'hot-coffee',t:['hot','less-sugar']},
+  {id:3,n:'Old School Flat White',s:'',p:120,c:'hot-coffee',t:['hot']},
+  {id:4,n:'Gur Latte',s:'vanilla / caramel / hazelnut',p:120,c:'hot-coffee',t:['hot'],x:{flavour:['Classic','Vanilla +30','Caramel +30','Hazelnut +30']}},
+  {id:5,n:'Cappuccino',s:'vanilla / caramel / hazelnut',p:120,c:'hot-coffee',t:['hot'],x:{flavour:['Classic','Vanilla +30','Caramel +30','Hazelnut +30']}},
+  {id:6,n:'Mocha',s:'white / dark',p:140,c:'hot-coffee',t:['hot'],x:{variant:['White','Dark']}},
+  // ICED COFFEE
+  {id:7,n:'Iced Americano',s:'ask for lemon',p:90,c:'cold-coffee',t:['cold','less-sugar'],x:{extras:['No lemon','With lemon']}},
+  {id:8,n:'Espresso Tonic',s:'strong · sugar free',p:130,c:'cold-coffee',t:['cold','less-sugar']},
+  {id:9,n:'Flavoured Espresso Tonic',s:'cranberry / orange / surprise me',p:150,c:'cold-coffee',t:['cold'],x:{flavour:['Cranberry','Orange','Surprise me']}},
+  {id:10,n:'Redbull (Wings) Espresso',s:'new · strong',p:230,c:'cold-coffee',t:['cold','more-sugar']},
+  {id:11,n:'Central Perk Iced Latte',s:'',p:120,c:'cold-coffee',t:['cold']},
+  {id:12,n:'Classic Cold Coffee',s:'',p:120,c:'cold-coffee',t:['cold']},
+  {id:13,n:'Iced Mocha',s:'ask for dark',p:140,c:'cold-coffee',t:['cold'],x:{extras:['Regular','Add dark']}},
+  {id:14,n:'Hazelnut / Vanilla Cold Coffee',s:'',p:150,c:'cold-coffee',t:['cold'],x:{flavour:['Hazelnut','Vanilla']}},
+  {id:15,n:'Popcorn / Cheesecake Cold Coffee',s:'',p:150,c:'cold-coffee',t:['cold','more-sugar'],x:{flavour:['Popcorn','Cheesecake']}},
+  {id:16,n:'Vietnamese Iced Coffee',s:'must try · strong',p:170,c:'cold-coffee',t:['cold','more-sugar']},
+  // COLD BEVERAGES
+  {id:17,n:'Tangerine Mocktail',s:'must try',p:90,c:'cold-beverages',t:['cold']},
+  {id:18,n:"Drake's Passionfruit Mocktail",s:'new',p:90,c:'cold-beverages',t:['cold']},
+  {id:19,n:'Cranberry Mocktail',s:'',p:90,c:'cold-beverages',t:['cold']},
+  {id:20,n:'Sleepy Redbull Mocktail',s:'new',p:210,c:'cold-beverages',t:['cold','more-sugar']},
+  {id:21,n:'Crispy Water',s:'complimentary',p:0,c:'cold-beverages',t:['cold','less-sugar']},
+  {id:22,n:'Raspberry Iced Tea',s:'',p:80,c:'cold-beverages',t:['cold','less-sugar']},
+  {id:23,n:'Mango Mint Iced Tea',s:'',p:80,c:'cold-beverages',t:['cold','less-sugar']},
+  {id:24,n:'Fresh Lime Soda',s:'',p:90,c:'cold-beverages',t:['cold','less-sugar']},
+  {id:25,n:'Peach Iced Tea',s:'',p:80,c:'cold-beverages',t:['cold','less-sugar']},
+  {id:26,n:'Lemon Iced Tea',s:'',p:80,c:'cold-beverages',t:['cold','less-sugar']},
+  {id:27,n:'Ghar ka OG Nimboo Paani',s:'sugar free',p:40,c:'cold-beverages',t:['cold','less-sugar']},
+  // MILK
+  {id:28,n:'Hot Chocolate',s:'vanilla / hazelnut',p:90,c:'milk',t:['hot','more-sugar'],x:{flavour:['Classic','Vanilla +30','Hazelnut +30']}},
+  {id:29,n:"Dadi's Fav Haldi Doodh",s:'sugar free',p:60,c:'milk',t:['hot','less-sugar']},
+  {id:30,n:'Chocolate Milkshake',s:'new · must try',p:160,c:'milk',t:['cold','more-sugar']},
+  {id:31,n:'Biscoff Milkshake',s:'',p:180,c:'milk',t:['cold','more-sugar']},
+  {id:32,n:"Anusha's Bournvita",s:'must try',p:70,c:'milk',t:[],x:{temp:['Iced','Hot']}},
+  // MATCHA
+  {id:33,n:'Matcha Latte',s:'iced or hot · vanilla / hazelnut',p:170,c:'matcha',t:['less-sugar'],x:{temp:['Iced','Hot'],flavour:['Classic','Vanilla +30','Hazelnut +30']}},
+  {id:34,n:'Dirty Dancing Matcha',s:'new · espresso over matcha',p:210,c:'matcha',t:[]},
+  // FOOD
+  {id:35,n:'Hummus Platter',s:'pita, lavash, khakhra & fresh veggies',p:160,c:'food',t:['food','less-sugar']},
+  {id:36,n:'Honey x Nimbu Hummus Salad',s:'vinaigrette, hummus, crisp lavash, honey & lemon',p:140,c:'food',t:['food','less-sugar']},
+  {id:37,n:'Pesto Paneer Salad',s:'grilled paneer, pesto, vinaigrette & peri peri khakhra',p:160,c:'food',t:['food']},
+  {id:38,n:'Tandoori Paneer Salad',s:'grilled paneer, fresh salad, mint yogurt chutney & lavash',p:160,c:'food',t:['food']},
+  {id:39,n:'Crispy Peanut Chaat',s:'peanuts, potato, onion, boondi, spices & nimbu',p:120,c:'food',t:['food','less-sugar']},
+  {id:40,n:'Korean Garlic Bun',s:'new · cream cheese, herby garlic butter',p:80,c:'food',t:['food']},
+  {id:41,n:"Let's Nachos",s:'new',p:140,c:'food',t:['food']},
+  // DESSERTS
+  {id:42,n:'Choco Muffin',s:'',p:40,c:'desserts',t:['more-sugar']},
+  {id:43,n:'Chocolate Cookie',s:'',p:50,c:'desserts',t:['more-sugar']},
+  {id:44,n:'Nutella Cookie',s:'',p:50,c:'desserts',t:['more-sugar']},
+  {id:45,n:'Chocolate Brownie',s:'must try',p:90,c:'desserts',t:['more-sugar']},
+  {id:46,n:'Sea Salt Caramel Brownie',s:'must try',p:90,c:'desserts',t:['more-sugar']},
+  {id:47,n:'Lemon Cheesecake',s:'',p:120,c:'desserts',t:[]},
+  {id:48,n:'Chocolate Cheesecake',s:'must try · new',p:120,c:'desserts',t:['more-sugar']},
 ];
 const CL={'hot-coffee':'Hot Coffee','cold-coffee':'Cold Coffee','cold-beverages':'Cold Beverages','milk':'Milk Drinks','matcha':'Matcha','food':'Food','desserts':'Desserts'};
 let cart=[],AF=new Set(),AC='all',CS={},step=1,slot='ASAP';
@@ -371,7 +381,7 @@ function rCO(){
       `<div class="pickup-info">📍 pickup counter is near the main entrance. your order number will be displayed on the board.</div>`+
       `<button class="next-btn" onclick="goStep(3)">confirm order →</button>`;
   } else if(step===3){
-    const oid='CRY-'+Math.floor(1000+Math.random()*9000);
+    const oid='CR8-'+Math.floor(1000+Math.random()*9000);
     cart=[];upAll();
     c=`<div class="success"><span class="si">✦</span>`+
       `<div class="s-title">order placed!</div>`+
