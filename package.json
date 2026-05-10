@@ -1,0 +1,9 @@
+{
+  "name": "createry",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "@vercel/kv": "^1.0.1",
+    "razorpay": "^2.9.2"
+  }
+}
