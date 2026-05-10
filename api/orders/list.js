@@ -1,8 +1,12 @@
 // api/orders/list.js
 // GET /api/orders/list
-// Polled by the kitchen display every 3 seconds
 
-import { kv } from '@vercel/kv';
+import { Redis } from '@upstash/redis';
+
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+});
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -11,17 +15,16 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
-  // Get last 100 order IDs
-  const ids = await kv.lrange('orders:list', 0, 99);
+  const ids = await redis.lrange('orders:list', 0, 99);
   if (!ids || !ids.length) return res.status(200).json({ orders: [] });
 
-  // Fetch all orders in parallel
   const orders = await Promise.all(
-    ids.map(id => kv.get(`order:${id}`))
+    ids.map(async id => {
+      const raw = await redis.get(`order:${id}`);
+      if (!raw) return null;
+      return typeof raw === 'string' ? JSON.parse(raw) : raw;
+    })
   );
 
-  // Filter out nulls (deleted/expired orders)
-  const valid = orders.filter(Boolean);
-
-  return res.status(200).json({ orders: valid });
+  return res.status(200).json({ orders: orders.filter(Boolean) });
 }
