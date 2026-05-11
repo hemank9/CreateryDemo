@@ -791,22 +791,25 @@ function validateStep1(){
   customerName=name;customerPhone=phone;customerEmail=email;
   goStep(2);
 }
-function goStep(n){
+async function goStep(n){
   if(n===3){
-    // fire the API call cleanly here, not inside rCO()
     const oid='CR8-'+Math.floor(1000+Math.random()*9000);
     window._pendingOid=oid;
-    fetch('https://createry-demo.vercel.app/api/orders/create',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        id:oid,
-        customer:customerName,
-        phone:customerPhone,
-        slot,
-        items:cart.map(c=>({name:c.n,opts:c.ol||'',qty:c.qty}))
-      })
-    }).catch(()=>{});
+    try{
+      await fetch('/api/save-order',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          name:customerName,
+          phone:customerPhone,
+          slot,
+          total:cTotal(),
+          items:cart.map(c=>({name:c.n,opts:c.ol||'',qty:c.qty,price:c.p}))
+        })
+      });
+    }catch(e){
+      console.error('Failed to save order:',e);
+    }
     cart=[];upAll();
   }
   step=n;
