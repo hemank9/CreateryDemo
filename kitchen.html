@@ -18,6 +18,9 @@ header{background:var(--ink);color:white;padding:0 24px;height:58px;display:flex
 .hdr-count{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;}
 .hdr-count span{background:var(--red);color:white;border-radius:2px;padding:3px 8px;margin-left:6px;}
 .hdr-count span.zero{background:var(--green);}
+.conn-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0;transition:background .3s;}
+.conn-dot.ok{background:#4caf50;}
+.conn-dot.err{background:var(--red);}
 
 /* TABS */
 .tabs{display:flex;gap:0;background:rgba(26,26,46,0.06);border-bottom:2px solid var(--border);padding:0 24px;}
@@ -37,20 +40,20 @@ header{background:var(--ink);color:white;padding:0 24px;height:58px;display:flex
 
 /* TICKET */
 .ticket{background:var(--card);border:2px solid var(--border);border-radius:4px;overflow:hidden;transition:all .2s;}
-.ticket.new{border-color:var(--red);animation:newPulse .6s ease;}
+.ticket.active{border-color:var(--red);animation:newPulse .6s ease;}
 .ticket.making{border-color:var(--orange);}
 .ticket.done{border-color:var(--green);opacity:.7;}
 @keyframes newPulse{0%{transform:scale(1.02)}100%{transform:scale(1)}}
 
 .ticket-header{padding:12px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1.5px solid var(--line);}
-.ticket-header.new{background:rgba(232,0,15,0.06);}
+.ticket-header.active{background:rgba(232,0,15,0.06);}
 .ticket-header.making{background:rgba(232,96,0,0.06);}
 .ticket-header.done{background:rgba(27,107,27,0.06);}
 
 .ticket-id{font-size:18px;font-weight:700;color:var(--ink);letter-spacing:.04em;}
 .ticket-time{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
 .ticket-status{font-size:9px;font-weight:700;padding:4px 8px;border-radius:1px;text-transform:uppercase;letter-spacing:.08em;}
-.ticket-status.new{background:var(--red);color:white;}
+.ticket-status.active{background:var(--red);color:white;}
 .ticket-status.making{background:var(--orange);color:white;}
 .ticket-status.done{background:var(--green);color:white;}
 
@@ -130,6 +133,7 @@ header{background:var(--ink);color:white;padding:0 24px;height:58px;display:flex
 <header>
   <div class="hdr-logo">Createry · Kitchen</div>
   <div class="hdr-right">
+    <div class="conn-dot" id="connDot" title="connection status"></div>
     <button class="sound-btn on" id="soundBtn" onclick="toggleSound()">🔔 sound on</button>
     <div class="hdr-count">active orders <span id="activeCount">0</span></div>
     <div class="hdr-clock" id="clock"></div>
@@ -191,156 +195,189 @@ header{background:var(--ink);color:white;padding:0 24px;height:58px;display:flex
 </div>
 
 <script>
-let orders=[];
-let currentTab='active';
-let soundOn=true;
-let timers={};
-
-const API='https://createry-demo.vercel.app/api/orders';
-
-// ── FETCH ORDERS FROM BACKEND ──
-async function fetchOrders(){
-  try{
-    const r=await fetch(`${API}/list`);
-    if(!r.ok)throw new Error();
-    const d=await r.json();
-    // merge: preserve local status changes until next poll confirms them
-    d.orders.forEach(o=>{
-      const existing=orders.find(x=>x.id===o.id);
-      if(!existing) orders.push(o);
-      else{
-        // update fields from server but keep local status if newer
-        Object.assign(existing,{...o,status:existing._localStatus||o.status});
-        delete existing._localStatus;
-      }
-    });
-    render();
-  }catch(e){
-    console.warn('Could not reach backend, using local data.');
-  }
-}
-
-async function updateStatus(id,status){
-  const o=orders.find(x=>x.id===id);
-  if(!o)return;
-  o._localStatus=status; // optimistic update
-  o.status=status;
-  if(status==='done')o.doneTs=Date.now();
-  else o.doneTs=null;
-  render();
-  try{
-    await fetch(`${API}/update`,{
-      method:'PATCH',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({id,status})
-    });
-    delete o._localStatus;
-  }catch(e){console.warn('Status update failed, will retry on next poll.');}
-}
-
-// ── STORAGE — fallback only ──
-function save(){try{localStorage.setItem('cr8-kds',JSON.stringify(orders));}catch(e){}}
-function load(){try{const d=localStorage.getItem('cr8-kds');if(d)orders=JSON.parse(d);}catch(e){orders=[];}}
+// All orders keyed by orderId for easy lookup
+let ordersMap = {};
+let currentTab = 'active';
+let soundOn = true;
+let knownIds = new Set(); // track IDs we've seen to detect new arrivals
 
 // ── CLOCK ──
 function updateClock(){
-  const n=new Date();
-  document.getElementById('clock').textContent=n.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
 }
-setInterval(updateClock,1000);updateClock();
+setInterval(updateClock, 1000); updateClock();
+
+// ── CONNECTION DOT ──
+function setConn(ok){
+  const d = document.getElementById('connDot');
+  d.className = 'conn-dot ' + (ok ? 'ok' : 'err');
+  d.title = ok ? 'connected' : 'connection error';
+}
 
 // ── SOUND ──
 function playBeep(){
-  if(!soundOn)return;
+  if(!soundOn) return;
   try{
-    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const ctx = new(window.AudioContext||window.webkitAudioContext)();
     [0,150,300].forEach(d=>setTimeout(()=>{
-      const o=ctx.createOscillator(),g=ctx.createGain();
-      o.connect(g);g.connect(ctx.destination);
-      o.frequency.value=880;g.gain.setValueAtTime(.3,ctx.currentTime);
+      const o=ctx.createOscillator(), g=ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value=880; g.gain.setValueAtTime(.3,ctx.currentTime);
       g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.15);
-      o.start();o.stop(ctx.currentTime+.15);
+      o.start(); o.stop(ctx.currentTime+.15);
     },d));
   }catch(e){}
 }
 function toggleSound(){
-  soundOn=!soundOn;
-  const b=document.getElementById('soundBtn');
-  b.textContent=soundOn?'🔔 sound on':'🔕 sound off';
-  b.classList.toggle('on',soundOn);
+  soundOn = !soundOn;
+  const b = document.getElementById('soundBtn');
+  b.textContent = soundOn ? '🔔 sound on' : '🔕 sound off';
+  b.classList.toggle('on', soundOn);
 }
 
-// ── ORDER ID ──
-function genId(){return 'CR8-'+Math.floor(1000+Math.random()*9000);}
+// ── FETCH FROM REDIS ──
+async function fetchOrders(){
+  try{
+    const r = await fetch('/api/get-orders');
+    if(!r.ok) throw new Error();
+    const {orders} = await r.json();
+    setConn(true);
+
+    // detect new arrivals and play beep
+    let hasNew = false;
+    orders.forEach(o=>{
+      if(!knownIds.has(o.orderId)){
+        knownIds.add(o.orderId);
+        // only beep if it's a new active order (not first load)
+        if(knownIds.size > 1 || Object.keys(ordersMap).length > 0) hasNew = true;
+      }
+    });
+    if(hasNew) playBeep();
+
+    // rebuild map from server — server is source of truth
+    // preserve local optimistic status only if server hasn't caught up yet
+    const newMap = {};
+    orders.forEach(o=>{
+      const existing = ordersMap[o.orderId];
+      newMap[o.orderId] = {
+        ...o,
+        // if we have a newer local status change in flight, keep it briefly
+        status: (existing && existing._optimistic) ? existing.status : o.status,
+        ts: o.createdAt,
+        doneTs: o.doneAt || null,
+      };
+      if(existing && existing._optimistic && existing.status === o.status){
+        delete newMap[o.orderId]._optimistic;
+      }
+    });
+
+    // also keep done orders that server no longer returns (expired from active set)
+    // so they stay visible in the "done" tab until page refresh
+    Object.values(ordersMap).forEach(o=>{
+      if(o.status === 'done' && !newMap[o.orderId]) newMap[o.orderId] = o;
+    });
+
+    ordersMap = newMap;
+    render();
+  } catch(e){
+    setConn(false);
+    console.warn('Poll failed:', e);
+  }
+}
+
+// ── UPDATE STATUS ──
+async function updateStatus(orderId, status){
+  const o = ordersMap[orderId];
+  if(!o) return;
+
+  // optimistic update
+  o.status = status;
+  o._optimistic = true;
+  if(status === 'done') o.doneAt = Date.now();
+  render();
+
+  try{
+    const r = await fetch('/api/update-order',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({orderId, status})
+    });
+    if(r.ok) delete o._optimistic;
+  }catch(e){
+    console.warn('Status update failed, will retry on next poll.');
+  }
+}
 
 // ── ELAPSED TIME ──
 function elapsed(ts){
-  const s=Math.floor((Date.now()-ts)/1000);
-  if(s<60)return s+'s';
-  const m=Math.floor(s/60),sec=s%60;
+  const s = Math.floor((Date.now()-ts)/1000);
+  if(s<60) return s+'s';
+  const m = Math.floor(s/60), sec = s%60;
   return m+'m '+(sec<10?'0':'')+sec+'s';
 }
 function timerClass(ts){
-  const m=(Date.now()-ts)/60000;
-  if(m>10)return'late';if(m>5)return'warn';return'';
+  const m = (Date.now()-ts)/60000;
+  if(m>10) return 'late'; if(m>5) return 'warn'; return '';
 }
 
 // ── RENDER ──
 function render(){
-  const grid=document.getElementById('ticketsGrid');
-  const empty=document.getElementById('emptyState');
-  const filtered=orders.filter(o=>
-    currentTab==='active'?o.status==='new':
-    currentTab==='making'?o.status==='making':
+  const grid = document.getElementById('ticketsGrid');
+  const empty = document.getElementById('emptyState');
+
+  const all = Object.values(ordersMap);
+  const filtered = all.filter(o=>
+    currentTab==='active' ? o.status==='active' :
+    currentTab==='making' ? o.status==='making' :
     o.status==='done'
-  );
-  // sort: newest first for active/making, newest first for done
-  filtered.sort((a,b)=>b.ts-a.ts);
-  if(currentTab==='done') filtered.sort((a,b)=>b.doneTs-a.doneTs);
+  ).sort((a,b)=> currentTab==='done' ? (b.doneAt||0)-(a.doneAt||0) : b.ts-a.ts);
 
   grid.innerHTML='';
-  if(!filtered.length){empty.style.display='block';grid.style.display='none';}
-  else{empty.style.display='none';grid.style.display='grid';}
+  if(!filtered.length){empty.style.display='block'; grid.style.display='none';}
+  else{empty.style.display='none'; grid.style.display='grid';}
 
   filtered.forEach(o=>{
-    const card=document.createElement('div');
-    card.className=`ticket ${o.status}`;
-    card.id='ticket-'+o.id;
+    const card = document.createElement('div');
+    card.className = `ticket ${o.status}`;
+    card.id = 'ticket-'+o.orderId;
 
-    const timeStr=new Date(o.ts).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
-    const itemsHtml=o.items.map(i=>`
+    const timeStr = new Date(o.ts).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    const doneTimeStr = o.doneAt ? new Date(o.doneAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) : '';
+
+    const itemsHtml = o.items.map(i=>`
       <div class="ticket-item">
         <div class="ti-left">
           <div class="ti-name">${i.name}</div>
-          ${i.opts?`<div class="ti-opts">${i.opts}</div>`:''}
+          ${i.opts ? `<div class="ti-opts">${i.opts}</div>` : ''}
         </div>
         <div class="ti-qty">×${i.qty}</div>
       </div>`).join('');
 
-    let footerHtml='';
-    if(o.status==='new'){
-      footerHtml=`<button class="btn btn-start" onclick="startOrder('${o.id}')">start making</button><button class="btn btn-cancel" onclick="cancelOrder('${o.id}')">cancel</button>`;
+    let footerHtml = '';
+    if(o.status==='active'){
+      footerHtml = `<button class="btn btn-start" onclick="startOrder('${o.orderId}')">start making</button><button class="btn btn-cancel" onclick="cancelOrder('${o.orderId}')">cancel</button>`;
     } else if(o.status==='making'){
-      footerHtml=`<button class="btn btn-done" onclick="doneOrder('${o.id}')">✓ ready for pickup</button><button class="btn btn-reopen" onclick="reopenOrder('${o.id}')">reopen</button>`;
+      footerHtml = `<button class="btn btn-done" onclick="doneOrder('${o.orderId}')">✓ ready for pickup</button><button class="btn btn-reopen" onclick="reopenOrder('${o.orderId}')">reopen</button>`;
     } else {
-      footerHtml=`<button class="btn btn-reopen" onclick="reopenOrder('${o.id}')">reopen</button>`;
+      footerHtml = `<button class="btn btn-reopen" onclick="reopenOrder('${o.orderId}')">reopen</button>`;
     }
 
-    const timerHtml=o.status!=='done'?`<div class="ticket-timer ${timerClass(o.ts)}" id="timer-${o.id}">⏱ waiting ${elapsed(o.ts)}</div>`:'';
-    const doneTimeStr=o.doneTs?new Date(o.doneTs).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'';
+    const timerHtml = o.status!=='done'
+      ? `<div class="ticket-timer ${timerClass(o.ts)}" id="timer-${o.orderId}">⏱ waiting ${elapsed(o.ts)}</div>`
+      : '';
 
     card.innerHTML=`
       <div class="ticket-header ${o.status}">
         <div>
-          <div class="ticket-id">${o.id}</div>
+          <div class="ticket-id">${o.orderId}</div>
           <div class="ticket-time">placed at ${timeStr}${o.status==='done'&&doneTimeStr?' · ready '+doneTimeStr:''}</div>
         </div>
-        <div class="ticket-status ${o.status}">${o.status==='new'?'new':o.status==='making'?'making':'ready ✓'}</div>
+        <div class="ticket-status ${o.status}">${o.status==='active'?'new':o.status==='making'?'making':'ready ✓'}</div>
       </div>
       <div class="ticket-meta">
         <div>
-          <div class="ticket-customer">${o.customer}</div>
-          ${o.phone?`<div class="ticket-phone">${o.phone}</div>`:''}
+          <div class="ticket-customer">${o.name}</div>
+          ${o.phone ? `<div class="ticket-phone">${o.phone}</div>` : ''}
         </div>
         <div class="ticket-slot">${o.slot}</div>
       </div>
@@ -351,47 +388,52 @@ function render(){
   });
 
   // update badges
-  const counts={new:0,making:0,done:0};
-  orders.forEach(o=>counts[o.status]=(counts[o.status]||0)+1);
-  document.getElementById('badge-active').textContent=counts.new||0;
-  document.getElementById('badge-making').textContent=counts.making||0;
-  document.getElementById('badge-done').textContent=counts.done||0;
-  const active=(counts.new||0)+(counts.making||0);
-  const ac=document.getElementById('activeCount');
-  ac.textContent=active;
-  ac.className=active===0?'zero':'';
+  const counts = {active:0, making:0, done:0};
+  Object.values(ordersMap).forEach(o=>{ if(counts[o.status]!==undefined) counts[o.status]++; });
+  document.getElementById('badge-active').textContent = counts.active;
+  document.getElementById('badge-making').textContent = counts.making;
+  document.getElementById('badge-done').textContent = counts.done;
+  const active = counts.active + counts.making;
+  const ac = document.getElementById('activeCount');
+  ac.textContent = active;
+  ac.className = active===0 ? 'zero' : '';
 }
 
 // update timers every second without full re-render
-function updateTimers(){
-  orders.filter(o=>o.status!=='done').forEach(o=>{
-    const el=document.getElementById('timer-'+o.id);
-    if(el){el.textContent=`⏱ waiting ${elapsed(o.ts)}`;el.className=`ticket-timer ${timerClass(o.ts)}`;}
+setInterval(()=>{
+  Object.values(ordersMap).filter(o=>o.status!=='done').forEach(o=>{
+    const el = document.getElementById('timer-'+o.orderId);
+    if(el){ el.textContent=`⏱ waiting ${elapsed(o.ts)}`; el.className=`ticket-timer ${timerClass(o.ts)}`; }
   });
-}
-setInterval(updateTimers,1000);
+},1000);
 
 // ── ACTIONS ──
-function startOrder(id){updateStatus(id,'making').then(()=>{if(currentTab==='active')render();else switchTabTo('making');});}
-function doneOrder(id){updateStatus(id,'done').then(()=>{if(currentTab==='making')render();else switchTabTo('done');});}
-function cancelOrder(id){if(!confirm('Cancel this order?'))return;orders=orders.filter(x=>x.id!==id);save();render();}
-function reopenOrder(id){updateStatus(id,'new').then(()=>switchTabTo('active'));}
+function startOrder(id){ updateStatus(id,'making'); if(currentTab==='active') render(); else switchTabTo('making'); }
+function doneOrder(id){ updateStatus(id,'done'); if(currentTab==='making') render(); else switchTabTo('done'); }
+function cancelOrder(id){
+  if(!confirm('Cancel this order?')) return;
+  // mark done locally and tell server
+  updateStatus(id,'done');
+  delete ordersMap[id];
+  render();
+}
+function reopenOrder(id){ updateStatus(id,'active'); switchTabTo('active'); }
 
 // ── TABS ──
 function switchTab(btn){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   btn.classList.add('active');
-  currentTab=btn.dataset.tab;
+  currentTab = btn.dataset.tab;
   render();
 }
 function switchTabTo(tab){
-  currentTab=tab;
+  currentTab = tab;
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===tab));
   render();
 }
 
-// ── NEW ORDER MODAL ──
-let itemRowCount=0;
+// ── NEW ORDER MODAL (walk-in orders entered by kitchen staff) ──
+let itemRowCount = 0;
 function openNewOrder(){
   document.getElementById('custName').value='';
   document.getElementById('custPhone').value='';
@@ -399,17 +441,17 @@ function openNewOrder(){
   document.getElementById('itemRows').innerHTML='';
   document.getElementById('modalErr').style.display='none';
   itemRowCount=0;
-  addItemRow();addItemRow();
+  addItemRow(); addItemRow();
   document.getElementById('orderModal').classList.add('open');
   document.getElementById('custName').focus();
 }
-function closeModal(){document.getElementById('orderModal').classList.remove('open');}
-document.getElementById('orderModal').addEventListener('click',e=>{if(e.target===document.getElementById('orderModal'))closeModal();});
+function closeModal(){ document.getElementById('orderModal').classList.remove('open'); }
+document.getElementById('orderModal').addEventListener('click',e=>{ if(e.target===document.getElementById('orderModal')) closeModal(); });
 
 function addItemRow(){
   itemRowCount++;
-  const row=document.createElement('div');
-  row.className='ib-row';row.id='irow-'+itemRowCount;
+  const row = document.createElement('div');
+  row.className='ib-row'; row.id='irow-'+itemRowCount;
   row.innerHTML=`
     <input class="ib-name" placeholder="item name" id="iname-${itemRowCount}">
     <input class="ib-opts" placeholder="opts (eg: hazelnut)" id="iopts-${itemRowCount}">
@@ -417,48 +459,51 @@ function addItemRow(){
     <button class="ib-del" onclick="removeRow(${itemRowCount})">×</button>`;
   document.getElementById('itemRows').appendChild(row);
 }
-function removeRow(n){
-  const r=document.getElementById('irow-'+n);if(r)r.remove();
-}
+function removeRow(n){ const r=document.getElementById('irow-'+n); if(r) r.remove(); }
 
-function submitOrder(){
-  const name=document.getElementById('custName').value.trim();
-  const phone=document.getElementById('custPhone').value.trim();
-  const slot=document.getElementById('custSlot').value;
-  const err=document.getElementById('modalErr');
+async function submitOrder(){
+  const name = document.getElementById('custName').value.trim();
+  const phone = document.getElementById('custPhone').value.trim();
+  const slot = document.getElementById('custSlot').value;
+  const err = document.getElementById('modalErr');
 
-  if(!name){err.textContent='please enter customer name.';err.style.display='block';return;}
+  if(!name){ err.textContent='please enter customer name.'; err.style.display='block'; return; }
 
-  const rows=document.querySelectorAll('#itemRows .ib-row');
-  const items=[];
+  const rows = document.querySelectorAll('#itemRows .ib-row');
+  const items = [];
   rows.forEach(r=>{
-    const id=r.id.replace('irow-','');
-    const n=document.getElementById('iname-'+id)?.value.trim();
-    const o=document.getElementById('iopts-'+id)?.value.trim();
-    const q=parseInt(document.getElementById('iqty-'+id)?.value)||1;
-    if(n)items.push({name:n,opts:o||'',qty:q});
+    const id = r.id.replace('irow-','');
+    const n = document.getElementById('iname-'+id)?.value.trim();
+    const o = document.getElementById('iopts-'+id)?.value.trim();
+    const q = parseInt(document.getElementById('iqty-'+id)?.value)||1;
+    if(n) items.push({name:n, opts:o||'', qty:q, price:0});
   });
 
-  if(!items.length){err.textContent='please add at least one item.';err.style.display='block';return;}
+  if(!items.length){ err.textContent='please add at least one item.'; err.style.display='block'; return; }
   err.style.display='none';
 
-  const order={id:genId(),customer:name,phone,slot,items,status:'new',ts:Date.now(),doneTs:null};
-  // push to backend
-  fetch(`${API}/create`,{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(order)
-  }).catch(()=>{});
-  orders.unshift(order);
-  save();playBeep();
-  closeModal();
-  switchTabTo('active');
+  try{
+    const r = await fetch('/api/save-order',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({name, phone, slot, items, total:0})
+    });
+    const data = await r.json();
+    if(data.orderId){
+      closeModal();
+      await fetchOrders(); // refresh immediately
+      switchTabTo('active');
+      playBeep();
+    }
+  } catch(e){
+    err.textContent='failed to create order. check connection.';
+    err.style.display='block';
+  }
 }
 
 // ── INIT ──
-load();render();
-fetchOrders(); // initial fetch
-setInterval(fetchOrders, 3000); // poll every 3 seconds
+fetchOrders();
+setInterval(fetchOrders, 4000); // poll every 4 seconds
 </script>
 </body>
 </html>
