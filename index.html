@@ -771,21 +771,7 @@ function rCO(){
     const slots=['ASAP','11:00 AM','11:30 AM','12:00 PM','12:30 PM','1:00 PM'];
     c=`<div class="fl"><label class="fl-lbl">pickup time</label><div class="slot-grid">${slots.map(s=>`<div class="slot-btn${slot===s?' sel':''}" onclick="selSlot('${s}')">${s}</div>`).join('')}</div></div><div class="pickup-info">pickup counter is near the main entrance. your order id will be on the board.</div><button class="next-btn" onclick="goStep(3)">confirm order →</button>`;
   }   else if(step===3){
-    const oid='CR8-'+Math.floor(1000+Math.random()*9000);
-    // push order to backend
-    const orderPayload={
-      id:oid,
-      customer:customerName,
-      phone:customerPhone,
-      slot,
-      items:cart.map(c=>({name:c.n,opts:c.ol||'',qty:c.qty}))
-    };
-    fetch('https://createry-demo.vercel.app/api/orders/create',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(orderPayload)
-    }).catch(()=>{}); // fail silently — order still confirmed for customer
-    cart=[];upAll();
+    const oid=window._pendingOid||'CR8-'+Math.floor(1000+Math.random()*9000);
     c=`<div class="success"><span class="si">✦</span><div class="s-title">order placed!</div><div class="s-sub">hey ${customerName}, head to the pickup counter when ready.<br>your id is on the board.</div><div class="order-id">${oid}</div><div class="status-track"><div class="st-step done"><div class="st-circle">✓</div><div class="st-name">received</div></div><div style="flex:1;height:1px;background:var(--line);margin:0 4px 18px"></div><div class="st-step active"><div class="st-circle">⏳</div><div class="st-name">making</div></div><div style="flex:1;height:1px;background:var(--line);margin:0 4px 18px"></div><div class="st-step"><div class="st-circle">✦</div><div class="st-name">ready</div></div></div><button class="next-btn" onclick="closeM('cartModal')" style="margin-top:8px">back to menu</button></div>`;
   }
   return`<div class="steps">${dots}</div>${c}`;
@@ -805,7 +791,27 @@ function validateStep1(){
   customerName=name;customerPhone=phone;customerEmail=email;
   goStep(2);
 }
-function goStep(n){step=n;document.getElementById('cartMC').innerHTML=rCO();}
+function goStep(n){
+  if(n===3){
+    // fire the API call cleanly here, not inside rCO()
+    const oid='CR8-'+Math.floor(1000+Math.random()*9000);
+    window._pendingOid=oid;
+    fetch('https://createry-demo.vercel.app/api/orders/create',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        id:oid,
+        customer:customerName,
+        phone:customerPhone,
+        slot,
+        items:cart.map(c=>({name:c.n,opts:c.ol||'',qty:c.qty}))
+      })
+    }).catch(()=>{});
+    cart=[];upAll();
+  }
+  step=n;
+  document.getElementById('cartMC').innerHTML=rCO();
+}
 function selSlot(s){slot=s;document.getElementById('cartMC').innerHTML=rCO();}
 function selPay(p){pay=p;document.getElementById('cartMC').innerHTML=rCO();}
 function closeM(id){
