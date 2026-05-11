@@ -151,27 +151,19 @@ nav{position:sticky;top:0;z-index:200;background:rgba(232,234,246,0.96);backdrop
 
 /* OVERLAYS / MODALS */
 /* overlay fixed to viewport so modal always appears where you're looking */
-.overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(26,26,46,0.65);z-index:400;justify-content:center;align-items:center;}
+/* overlay fixed to viewport */
+.overlay{display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(26,26,46,0.65);z-index:400;justify-content:center;align-items:center;}
 .overlay.open{display:flex;}
 /* base modal */
-.modal{background:var(--paper);background-image:repeating-linear-gradient(transparent,transparent 27px,var(--line) 27px,var(--line) 28px);border-radius:4px;border:1.5px solid var(--border);padding:18px 18px 24px;width:calc(100% - 32px);max-width:460px;max-height:85vh;overflow-y:auto;}
-/* cart modal: slides up from bottom on mobile, centered on desktop */
-#cartModal{align-items:flex-end;}
-#cartModal .modal{border-radius:4px 4px 0 0;border-bottom:none;width:100%;max-width:100%;max-height:92vh;}
+.modal{background:var(--paper);background-image:repeating-linear-gradient(transparent,transparent 27px,var(--line) 27px,var(--line) 28px);border-radius:4px;border:1.5px solid var(--border);padding:18px 18px 24px;width:calc(100% - 32px);max-width:460px;max-height:85vh;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+/* cart + feedback: slide from bottom on mobile */
+#cartModal,#fbModal{align-items:flex-end;}
+#cartModal .modal,#fbModal .modal{border-radius:4px 4px 0 0;border-bottom:none;width:100%;max-width:100%;max-height:92vh;}
 @media(min-width:600px){
-  #cartModal{align-items:center;}
-  #cartModal .modal{border-radius:4px;border-bottom:1.5px solid var(--border);width:calc(100% - 32px);max-width:470px;max-height:85vh;}
+  #cartModal,#fbModal{align-items:center;}
+  #cartModal .modal,#fbModal .modal{border-radius:4px;border-bottom:1.5px solid var(--border);width:calc(100% - 32px);max-width:470px;max-height:85vh;}
 }
-/* feedback modal: same as cart */
-#fbModal{align-items:flex-end;}
-#fbModal .modal{border-radius:4px 4px 0 0;border-bottom:none;width:100%;max-width:100%;max-height:92vh;}
-@media(min-width:600px){
-  #fbModal{align-items:center;}
-  #fbModal .modal{border-radius:4px;border-bottom:1.5px solid var(--border);width:calc(100% - 32px);max-width:520px;max-height:85vh;}
-}
-/* customise modal: ALWAYS centered in viewport, no overrides */
-#custModal{align-items:center !important;}
-#custModal .modal{border-radius:4px;border:1.5px solid var(--border);width:calc(100% - 32px);max-width:460px;max-height:85vh;}
+
 .modal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
 .modal-title{font-size:18px;font-weight:700;color:var(--ink);text-transform:uppercase;letter-spacing:.02em;}
 .modal-close{width:27px;height:27px;border-radius:50%;background:rgba(160,165,210,0.22);border:1px solid var(--border);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .12s;}
@@ -723,7 +715,7 @@ function chQty(id,d){const idx=cart.findIndex(c=>c.id===id);if(idx===-1)return;c
 function openCust(id){
   const i=MENU.find(x=>x.id===id);CS={id,qty:1,opts:{}};
   if(i.x)Object.keys(i.x).forEach(k=>CS.opts[k]=i.x[k][0]);
-  rCustModal(i);document.getElementById('custModal').classList.add('open');
+  rCustModal(i);openM('custModal');
 }
 function rCustModal(i){
   const LB={flavour:'Flavour',variant:'Variant',extras:'Extras',temp:'Temperature'};
@@ -778,8 +770,22 @@ function rCO(){
   } else if(step===2){
     const slots=['ASAP','11:00 AM','11:30 AM','12:00 PM','12:30 PM','1:00 PM'];
     c=`<div class="fl"><label class="fl-lbl">pickup time</label><div class="slot-grid">${slots.map(s=>`<div class="slot-btn${slot===s?' sel':''}" onclick="selSlot('${s}')">${s}</div>`).join('')}</div></div><div class="pickup-info">pickup counter is near the main entrance. your order id will be on the board.</div><button class="next-btn" onclick="goStep(3)">confirm order →</button>`;
-  } else if(step===3){
-    const oid='CR8-'+Math.floor(1000+Math.random()*9000);cart=[];upAll();
+  }   else if(step===3){
+    const oid='CR8-'+Math.floor(1000+Math.random()*9000);
+    // push order to backend
+    const orderPayload={
+      id:oid,
+      customer:customerName,
+      phone:customerPhone,
+      slot,
+      items:cart.map(c=>({name:c.n,opts:c.ol||'',qty:c.qty}))
+    };
+    fetch('https://createry-demo.vercel.app/api/orders/create',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(orderPayload)
+    }).catch(()=>{}); // fail silently — order still confirmed for customer
+    cart=[];upAll();
     c=`<div class="success"><span class="si">✦</span><div class="s-title">order placed!</div><div class="s-sub">hey ${customerName}, head to the pickup counter when ready.<br>your id is on the board.</div><div class="order-id">${oid}</div><div class="status-track"><div class="st-step done"><div class="st-circle">✓</div><div class="st-name">received</div></div><div style="flex:1;height:1px;background:var(--line);margin:0 4px 18px"></div><div class="st-step active"><div class="st-circle">⏳</div><div class="st-name">making</div></div><div style="flex:1;height:1px;background:var(--line);margin:0 4px 18px"></div><div class="st-step"><div class="st-circle">✦</div><div class="st-name">ready</div></div></div><button class="next-btn" onclick="closeM('cartModal')" style="margin-top:8px">back to menu</button></div>`;
   }
   return`<div class="steps">${dots}</div>${c}`;
@@ -802,8 +808,28 @@ function validateStep1(){
 function goStep(n){step=n;document.getElementById('cartMC').innerHTML=rCO();}
 function selSlot(s){slot=s;document.getElementById('cartMC').innerHTML=rCO();}
 function selPay(p){pay=p;document.getElementById('cartMC').innerHTML=rCO();}
-function closeM(id){document.getElementById(id).classList.remove('open');}
-document.querySelectorAll('.overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
+function closeM(id){
+  const el=document.getElementById(id);
+  el.classList.remove('open');
+  el.style.top='';
+}
+function openM(id){
+  const el=document.getElementById(id);
+  // for custModal: pin overlay top to current scroll so it appears where you are
+  if(id==='custModal'){
+    el.style.top=window.scrollY+'px';
+    el.style.height=window.innerHeight+'px';
+  } else {
+    el.style.top='';
+  }
+  el.classList.add('open');
+}
+document.querySelectorAll('.overlay').forEach(m=>m.addEventListener('click',e=>{
+  if(e.target===m){
+    m.classList.remove('open');
+    m.style.top='';
+  }
+}));
 
 // PAGE NAVIGATION
 function goPage(name){
