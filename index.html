@@ -768,8 +768,9 @@ function rCO(){
       `<div class="fl"><label class="fl-lbl">email <span style="color:var(--muted);font-weight:400">(optional)</span></label><input class="fi" id="fe" placeholder="you@anu.edu.in" type="email" value="${customerEmail}"></div>`+
       `<div class="err-msg" id="step1err"></div><button class="next-btn" onclick="validateStep1()">continue →</button>`;
   } else if(step===2){
-    const slots=['ASAP','11:00 AM','11:30 AM','12:00 PM','12:30 PM','1:00 PM'];
-    c=`<div class="fl"><label class="fl-lbl">pickup time</label><div class="slot-grid">${slots.map(s=>`<div class="slot-btn${slot===s?' sel':''}" onclick="selSlot('${s}')">${s}</div>`).join('')}</div></div><div class="pickup-info">pickup counter is near the main entrance. your order id will be on the board.</div><button class="next-btn" onclick="goStep(3)">confirm order →</button>`;
+    const slots=genSlots();if(slots.length&&!slots.includes(slot))slot='ASAP';
+    const closedMsg=`<div class="pickup-info" style="text-align:center;color:var(--red);font-weight:700;font-size:12px;">we're currently closed. createry is open 7:00 AM – 11:00 PM.</div>`;
+    c=`<div class="fl"><label class="fl-lbl">pickup time</label>${slots.length?`<div class="slot-grid">${slots.map(s=>`<div class="slot-btn${slot===s?' sel':''}" onclick="selSlot('${s}')">${s}</div>`).join('')}</div>`:closedMsg}</div><div class="pickup-info">pickup counter is near the main entrance. your order id will be on the board.</div>${slots.length?`<button class="next-btn" onclick="goStep(3)">confirm order →</button>`:''}`;
   }   else if(step===3){
     const oid=window._pendingOid||'CR8-'+Math.floor(1000+Math.random()*9000);
     c=`<div class="success"><span class="si">✦</span><div class="s-title">order placed!</div><div class="s-sub">hey ${customerName}, head to the pickup counter when ready.<br>your id is on the board.</div><div class="order-id">${oid}</div><div class="status-track"><div class="st-step done"><div class="st-circle">✓</div><div class="st-name">received</div></div><div style="flex:1;height:1px;background:var(--line);margin:0 4px 18px"></div><div class="st-step active"><div class="st-circle">⏳</div><div class="st-name">making</div></div><div style="flex:1;height:1px;background:var(--line);margin:0 4px 18px"></div><div class="st-step"><div class="st-circle">✦</div><div class="st-name">ready</div></div></div><button class="next-btn" onclick="closeM('cartModal')" style="margin-top:8px">back to menu</button></div>`;
@@ -893,6 +894,33 @@ function v2Toast(){
   t.classList.add('show');
   clearTimeout(window._tt);
   window._tt=setTimeout(()=>t.classList.remove('show'),2400);
+}
+
+
+// ── DYNAMIC PICKUP SLOTS ──
+function genSlots(){
+  const now = new Date();
+  const h = now.getHours(), m = now.getMinutes();
+  const openH = 7, closeH = 23; // 7 AM – 11 PM
+
+  if(h < openH || h >= closeH) return [];
+
+  // next 30-min boundary at least 10 mins from now
+  let startMins = h * 60 + m + 10;
+  startMins = Math.ceil(startMins / 30) * 30;
+
+  const slots = ['ASAP'];
+  for(let i = 0; i < 5; i++){
+    const slotMins = startMins + i * 30;
+    const sh = Math.floor(slotMins / 60);
+    const sm = slotMins % 60;
+    if(sh >= closeH) break;
+    const ampm = sh >= 12 ? 'PM' : 'AM';
+    const displayH = sh > 12 ? sh - 12 : sh === 0 ? 12 : sh;
+    const displayM = sm === 0 ? '00' : String(sm).padStart(2,'0');
+    slots.push(`${displayH}:${displayM} ${ampm}`);
+  }
+  return slots;
 }
 
 applyFilters();rDesktopCart();goPage('order');
