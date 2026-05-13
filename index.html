@@ -235,7 +235,7 @@ nav{position:sticky;top:0;z-index:200;background:rgba(232,234,246,0.96);backdrop
 .st-name{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
 .st-step.active .st-name{color:var(--red);font-weight:700;}
 .no-res{text-align:center;padding:40px 0;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;}
-.pickup-info{margin-top:8px;padding:8px 10px;background:rgba(255,214,0,0.14);border:1.5px solid rgba(255,214,0,0.45);border-radius:2px;font-size:11px;color:var(--muted);line-height:1.6;}
+.pickup-info{display:none;}
 .cat-block{margin-bottom:24px;}
 
 /* FLOATING FEEDBACK BUTTON */
@@ -642,19 +642,17 @@ const MENU=[
   {id:28,n:'Hot Chocolate',s:'vanilla / hazelnut',p:90,c:'milk',t:['hot','more-sugar'],x:{flavour:['Classic','Vanilla +30','Hazelnut +30']}},
   {id:29,n:"Dadi's Fav Haldi Doodh",s:'sugar free',p:60,c:'milk',t:['hot','less-sugar']},
   {id:30,n:'Chocolate Milkshake',s:'new · must try',p:160,c:'milk',t:['cold','more-sugar']},
-  {id:31,n:'Biscoff Milkshake',s:'imported biscoff',p:180,c:'milk',t:['cold','more-sugar']},
+  {id:31,n:'Biscoff Milkshake',s:'thick shake',p:180,c:'milk',t:['cold','more-sugar']},
   {id:32,n:"Anusha's Bournvita",s:'must try',p:70,c:'milk',t:[],x:{temp:['Iced','Hot']}},
   // MATCHA
   {id:33,n:'Matcha Latte',s:'iced or hot · vanilla / hazelnut',p:170,c:'matcha',t:['less-sugar'],x:{temp:['Iced','Hot'],flavour:['Classic','Vanilla +30','Hazelnut +30']}},
   {id:34,n:'Dirty Dancing Matcha',s:'new · espresso over matcha',p:210,c:'matcha',t:[]},
   // FOOD
   {id:35,n:'Hummus Platter',s:'pita, lavash, khakhra & fresh veggies',p:160,c:'food',t:['food','less-sugar']},
-  {id:36,n:'Honey x Nimbu Hummus Salad',s:'vinaigrette, hummus, crisp lavash',p:140,c:'food',t:['food','less-sugar']},
-  {id:37,n:'Pesto Paneer Salad',s:'grilled paneer, pesto, peri peri khakhra',p:160,c:'food',t:['food']},
+  {id:36,n:'Honey x Nimbu Hummus Salad',s:'vinaigrette salad',p:140,c:'food',t:['food','less-sugar']},
+  {id:37,n:'Pesto Paneer Salad',s:'pesto paneer, vinaigrette salad, peri peri khakhra',p:160,c:'food',t:['food']},
   {id:38,n:'Tandoori Paneer Salad',s:'grilled paneer, mint yogurt chutney, lavash',p:160,c:'food',t:['food']},
   {id:39,n:'Crispy Peanut Chaat',s:'peanuts, potato, onion, boondi, nimbu',p:120,c:'food',t:['food','less-sugar']},
-  {id:40,n:'Korean Garlic Bun',s:'new · cream cheese, herby garlic butter',p:80,c:'food',t:['food']},
-  {id:41,n:"Let's Nachos",s:'new',p:140,c:'food',t:['food']},
   // DESSERTS
   {id:42,n:'Choco Muffin',s:'',p:40,c:'desserts',t:['more-sugar']},
   {id:43,n:'Chocolate Cookie',s:'',p:50,c:'desserts',t:['more-sugar']},
@@ -770,10 +768,10 @@ function rCO(){
       `<div class="err-msg" id="step1err"></div><button class="next-btn" onclick="validateStep1()">continue →</button>`;
   } else if(step===2){
     const slots=genSlots();if(slots.length&&!slots.includes(slot))slot='ASAP';
-    c=`<div class="fl"><label class="fl-lbl">pickup time</label><div class="slot-grid">${slots.map(s=>`<div class="slot-btn${slot===s?' sel':''}" onclick="selSlot('${s}')">${s}</div>`).join('')}</div></div><div class="pickup-info">pickup counter is near the main entrance. your order id will be on the board.</div><button class="next-btn" onclick="goStep(3)">confirm order →</button>`;
+    c=`<div class="fl"><label class="fl-lbl">pickup time</label><div class="slot-grid">${slots.map(s=>`<div class="slot-btn${slot===s?' sel':''}" onclick="selSlot('${s}')">${s}</div>`).join('')}</div></div><button class="next-btn" onclick="goStep(3)">confirm order →</button>`;
   }   else if(step===3){
     const oid=window._pendingOid||'CR8-'+Math.floor(1000+Math.random()*9000);
-    c=`<div class="success"><span class="si">✦</span><div class="s-title">order placed!</div><div class="s-sub">hey ${customerName}, head to the pickup counter when ready.<br>your id is on the board.</div><div class="order-id">${oid}</div><div class="status-track"><div class="st-step done"><div class="st-circle">✓</div><div class="st-name">received</div></div><div style="flex:1;height:1px;background:var(--line);margin:0 4px 18px"></div><div class="st-step active"><div class="st-circle">⏳</div><div class="st-name">making</div></div><div style="flex:1;height:1px;background:var(--line);margin:0 4px 18px"></div><div class="st-step"><div class="st-circle">✦</div><div class="st-name">ready</div></div></div><button class="next-btn" onclick="closeM('cartModal')" style="margin-top:8px">back to menu</button></div>`;
+    c=`<div class="success"><span class="si">✦</span><div class="s-title">order placed!</div><div class="s-sub">hey ${customerName}, your order's in the works. see you at pickup soon.</div><button class="next-btn" onclick="closeM('cartModal')" style="margin-top:8px">back to menu</button></div>`;
   }
   return`<div class="steps">${dots}</div>${c}`;
 }
