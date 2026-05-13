@@ -235,7 +235,7 @@ nav{position:sticky;top:0;z-index:200;background:rgba(232,234,246,0.96);backdrop
 .st-name{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
 .st-step.active .st-name{color:var(--red);font-weight:700;}
 .no-res{text-align:center;padding:40px 0;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;}
-.pickup-info{display:none;}
+.pickup-info{margin-top:8px;padding:8px 10px;background:rgba(255,214,0,0.14);border:1.5px solid rgba(255,214,0,0.45);border-radius:2px;font-size:11px;color:var(--muted);line-height:1.6;}
 .cat-block{margin-bottom:24px;}
 
 /* FLOATING FEEDBACK BUTTON */
@@ -411,10 +411,7 @@ nav{position:sticky;top:0;z-index:200;background:rgba(232,234,246,0.96);backdrop
   <div class="overlay" id="custModal">
     <div class="modal"><div class="modal-hdr"><div class="modal-title">customise</div><button class="modal-close" onclick="closeM('custModal')">✕</button></div><div id="custContent"></div></div>
   </div>
-  <!-- Cart / checkout modal -->
-  <div class="overlay" id="cartModal">
-    <div class="modal" style="max-width:470px"><div class="modal-hdr"><div class="modal-title" id="cmt">your order</div><button class="modal-close" onclick="closeM('cartModal')">✕</button></div><div id="cartMC"></div></div>
-  </div>
+
 </div>
 
 <!-- ========== ABOUT PAGE ========== -->
@@ -603,6 +600,11 @@ nav{position:sticky;top:0;z-index:200;background:rgba(232,234,246,0.96);backdrop
   </div>
 </div>
 
+<!-- Cart / checkout modal -->
+<div class="overlay" id="cartModal">
+  <div class="modal" style="max-width:470px"><div class="modal-hdr"><div class="modal-title" id="cmt">your order</div><button class="modal-close" onclick="closeM('cartModal')">✕</button></div><div id="cartMC"></div></div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"><span class="toast-icon">✦</span><span id="toastMsg"></span></div>
 
@@ -753,9 +755,9 @@ function rCartItems(el){
 }
 function rDesktopCart(){const el=document.getElementById('cartContent'),q=cQty();document.getElementById('cic').textContent=q>0?`${q} item${q!==1?'s':''}`:'';rCartItems(el);}
 function applyCoupon(){const v=document.getElementById('cpf')?.value.trim().toUpperCase();if(!v)return;alert(v==='BREW10'?'10% off applied!':'Invalid coupon.');}
-function openCart(){step=1;document.getElementById('cmt').textContent='your order';rCartMC();openM('cartModal');}
+function openCart(){step=1;document.getElementById('cmt').textContent='your order';rCartMC();document.getElementById('cartModal').classList.add('open');}
 function rCartMC(){rCartItems(document.getElementById('cartMC'));const b=document.querySelector('#cartMC .checkout-btn');if(b)b.onclick=startCheckout;}
-function startCheckout(){if(!cart.length)return;step=1;document.getElementById('cmt').textContent='checkout';document.getElementById('cartMC').innerHTML=rCO();openM('cartModal');}
+function startCheckout(){if(!cart.length)return;step=1;document.getElementById('cmt').textContent='checkout';document.getElementById('cartMC').innerHTML=rCO();document.getElementById('cartModal').classList.add('open');}
 
 function rCO(){
   const SN=['details','pickup','done'];
@@ -823,8 +825,13 @@ function closeM(id){
 }
 function openM(id){
   const el=document.getElementById(id);
-  el.style.top=window.scrollY+'px';
-  el.style.height=window.innerHeight+'px';
+  // for custModal: pin overlay top to current scroll so it appears where you are
+  if(id==='custModal'){
+    el.style.top=window.scrollY+'px';
+    el.style.height=window.innerHeight+'px';
+  } else {
+    el.style.top='';
+  }
   el.classList.add('open');
 }
 document.querySelectorAll('.overlay').forEach(m=>m.addEventListener('click',e=>{
