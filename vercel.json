@@ -1,5 +1,4 @@
 {
-  "version": 2,
   "redirects": [
     {
       "source": "/(.*)",
@@ -8,19 +7,7 @@
       "permanent": true
     }
   ],
-  "builds": [
-    { "src": "api/**/*.js", "use": "@vercel/node" },
-    { "src": "*.html", "use": "@vercel/static" }
-  ],
-  "routes": [
-    { "src": "/api/orders/create", "dest": "/api/orders/create.js" },
-    { "src": "/api/orders/list", "dest": "/api/orders/list.js" },
-    { "src": "/api/orders/update", "dest": "/api/orders/update.js" },
-    { "src": "/api/(.*)", "dest": "/api/$1.js" },
-    { "src": "/kitchen", "dest": "/kitchen.html" },
-    { "src": "/kitchen.html", "dest": "/kitchen.html" },
-    { "src": "/(.*)", "dest": "/index.html" }
+  "rewrites": [
+    { "source": "/kitchen", "destination": "/kitchen.html" }
   ]
 }
-
-
