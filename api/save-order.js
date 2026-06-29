@@ -1,4 +1,5 @@
 import { Redis } from "@upstash/redis";
+import { relayOrderToPetpooja } from "./_petpooja.js";
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL,
@@ -38,5 +39,15 @@ export default async function handler(req, res) {
   // Add to sorted set so we can fetch all orders sorted by time
   await redis.zadd("orders:active", { score: Date.now(), member: orderId });
 
-  return res.status(200).json({ success: true, orderId });
+  // ── Relay to Petpooja (non-blocking failure — never breaks the customer's order) ──
+  const callbackUrl = `${process.env.FRONTEND_URL || "https://createry.cafe"}/api/petpooja-callback`;
+  const petpoojaResult = await relayOrderToPetpooja(order, callbackUrl);
+
+  if (petpoojaResult) {
+    // Save Petpooja's order reference back onto our order for later lookups
+    order.petpoojaOrderId = petpoojaResult.orderID || petpoojaResult.order_id || null;
+    await redis.set(`order:${orderId}`, JSON.stringify(order), { ex: 86400 });
+  }
+
+  return res.status(200).json({ success: true, orderId, petpoojaRelayed: !!petpoojaResult });
 }
