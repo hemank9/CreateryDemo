@@ -6,8 +6,8 @@
 //   GET https://createry.cafe/api/push-menu?key=YOUR_ADMIN_KEY
 
 import { Redis } from "@upstash/redis";
-import { pushMenuToPetpooja } from "./_petpooja-menu.js";
-import { MENU } from "./_menu-data.js";
+import { pushMenuToPetpooja } from "../lib/petpooja-menu.js";
+import { MENU } from "../lib/menu-data.js";
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL,
