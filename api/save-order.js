@@ -1,5 +1,5 @@
 import { Redis } from "@upstash/redis";
-import { relayOrderToPetpooja } from "./_petpooja.js";
+import { relayOrderToPetpooja } from "../lib/petpooja.js";
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL,
