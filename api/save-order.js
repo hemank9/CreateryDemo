@@ -130,8 +130,8 @@ function buildPetpoojaPayload(order, callbackUrl) {
       advanced_order: "N",
       order_type: "P",
       total: total.toFixed(2),
-      discount_total: "0",
-      discount_type: "F",
+      discount_total: String(order.discountTotal || 0),
+      discount_type: order.discountType || "F",
       tax_total: taxTotal.toFixed(2),
       description: order.notes || "",
       created_on: createdOn,
@@ -204,7 +204,7 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const { name, phone, slot, items, total, paymentId, razorpayOrderId } = req.body;
+  const { name, phone, slot, items, total, paymentId, razorpayOrderId, discountTotal, discountType } = req.body;
 
   if (!name || !items || !items.length || !total) {
     return res.status(400).json({ error: "Missing required order fields" });
@@ -222,6 +222,8 @@ export default async function handler(req, res) {
     razorpayOrderId: razorpayOrderId || null,
     status: "active",
     createdAt: Date.now(),
+    discountTotal: discountTotal || 0,
+    discountType: discountType || "F",
   };
 
   await redis.set(`order:${orderId}`, JSON.stringify(order), { ex: 86400 });
