@@ -9,5 +9,11 @@
   ],
   "rewrites": [
     { "source": "/kitchen", "destination": "/kitchen.html" }
+  ],
+  "crons": [
+    {
+      "path": "/api/keepalive",
+      "schedule": "0 6 */6 * *"
+    }
   ]
 }
